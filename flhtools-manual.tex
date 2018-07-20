@@ -1,0 +1,135 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx,color,fullpage,url}
+\usepackage{mathpazo}
+\usepackage{amsmath,amssymb}
+\usepackage[font={small}]{caption}
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+\usepackage[nice]{nicefrac}
+
+\title{Field line helicity tools}
+\author{A. R. Yeates\\ Department of Mathematical Sciences, Durham University, UK}
+\date{\today}
+
+\newcommand{\file}[1]{\textcolor{blue}{\texttt{#1}}}
+\newcommand{\flag}[1]{\textcolor{magenta}{\texttt{#1}}}
+
+\renewcommand{\t}[1]{\texttt{#1}}
+\renewcommand{\d}{\,\textrm{d}}
+\newcommand{\dy}{\partial}
+
+\newcommand{\dr}{\Delta_\rho}
+\newcommand{\ds}{\Delta_s}
+\newcommand{\dph}{\Delta_\phi}
+
+\newcommand{\nr}{n_\rho}
+\newcommand{\ns}{n_s}
+\newcommand{\nph}{n_\phi}
+
+\newcommand{\half}{\nicefrac{1}{2}}
+\newcommand{\thr}{\nicefrac{3}{2}}
+
+\newcommand{\Ab}{\boldsymbol{A}}
+\newcommand{\Bb}{\boldsymbol{B}}
+\newcommand{\Eb}{\boldsymbol{E}}
+\newcommand{\Nb}{\boldsymbol{N}}
+\newcommand{\eb}{\boldsymbol{e}}
+\newcommand{\jb}{\boldsymbol{j}}
+\newcommand{\nb}{\boldsymbol{n}}
+\newcommand{\vb}{\boldsymbol{v}}
+
+\newcommand{\ex}{\,\mathrm{e}}
+\newcommand{\evr}{\,\mathrm{e}_\rho}
+\newcommand{\evs}{\,\mathrm{e}_s}
+\newcommand{\evp}{\,\mathrm{e}_\phi}
+\newcommand{\evt}{\,\mathrm{e}_\theta}
+
+\newcommand{\LA}{{\cal A}}
+\newcommand{\OB}{{\cal B}}
+
+% Remove paragraph indentation
+\setlength{\parindent}{0pc}%
+\setlength{\parskip}{\medskipamount}
+
+\begin{document}
+\maketitle
+
+{\abstract This is a set of Python tools for computing (relative) field-line helicity in Cartesian domains. Full background and motivation for the code is given in the accompanying paper \citep{yeates2018}.\\
+Any questions: \url{anthony.yeates@durham.ac.uk}.}
+
+%\tableofcontents
+%\pagebreak
+
+\section{Overview}
+
+The main file \texttt{flhcart.py} contains the definition of a \texttt{BField} class describing a magnetic field snapshot on a regular Cartesian grid. This class has methods for interpolating, computing vector potentials, tracing magnetic field lines, computing the reference potential field,  computing field-line helicity, etc. Supporting Fortran code given in the source filed \texttt{fastfl.f90} and \texttt{fastflh.f90} provides the necessary fast tracing of magnetic field lines and computing of line integrals along them.
+
+To run the code, the user must supply a netcdf file containing a datacube of three-dimensional arrays $B_x$, $B_y$, $B_z$, defined at grid points of a regular grid (not on a staggered grid). Alternatively, it would be straightforward to alter the file input to read a different format. The script \texttt{demo\_b2nc.py} illustrates how to create such a netcdf file for an analytical magnetic field. Usually, however, it would be derived from a numerical experiment.
+
+Several scripts are provided to illustrate different possible uses of the code:
+\begin{itemize}
+\item \texttt{demo\_plot3d.py} -- plot the 3D magnetic field lines, and compute and plot those for the corresponding potential reference field.
+\item \texttt{demo\_flh\_devore.py} -- two-dimensional plots of field-line helicity on the lower boundary, using DeVore gauge.
+\item \texttt{demo\_flh\_minimal.py} -- two-dimensional plots field-line helicity on the lower boundary, using minimal gauge ${\bf A}^*$.
+\item \texttt{demo\_compare\_hr.py} -- compare the total relative helicity computed by volume integration (Finn-Antonsen formula) versus integration of the relative field-line helicity.
+\end{itemize}
+
+Field lines are traced by calling one of two Fortran 90 codes The first is \texttt{fastfl.f90}, which is used when you want to return the entire field line path. The second is \texttt{fastflh.f90}, which still integrates the field lines but only returns the field-line helicity. These codes are compiled when you create a \texttt{BField} object, by default using \texttt{gfortran}. They should have no further dependencies. If OpenMP is available on your system, the code should take advantage of it automatically to trace field lines in parallel. You may need to change the Fortran compiler or compiler options on lines 30-31 of \texttt{flhcart.py}.
+
+The Python codes should run in either Python 2.7 or 3.x.
+
+\section{Example output}
+
+Here I show the demo output that you should obtain by running the scripts as supplied. Here \texttt{demo\_b2nc.py} creates a data cube for the magnetic field
+\begin{equation}
+B_x = -2, \quad B_y = -z - \frac{t(1-z^2)}{(1+z^2/25)^2(1+x^2/25)}, \quad B_z = y.
+\end{equation}
+This is a simple toy model for a magnetic flux rope in the solar corona \citep{2005ApJ...631.1227H}.
+
+\subsection{Magnetic field lines}
+
+The script \texttt{demo\_plot3d.py} should produce the following (rotatable) output:
+\begin{center}
+\includegraphics[width=\textwidth]{plot3d.png}
+\end{center}
+The left-hand plot shows the field lines of ${\bf B}$ (for $t=2$), while the right plot shows the corresponding potential reference field ${\bf B}_{\rm p}$ whose normal component $B_{{\rm p}n}$ matches $B_n$ on all six boundaries. Notice that, despite the fact that $B_z$ on the lower boundary is independent of $x$, the field lines of ${\bf B}_{\rm p}$ are not orthogonal to the polarity-inversion line $y=0$ because the distribution of $B_y$ on the $y=\pm 20$ boundaries is a function of $x$. This illustrates the importance of matching $B_n$ on all boundaries of the domain when computing the reference field.
+
+
+\subsection{DeVore gauge field-line helicity}
+
+The script \texttt{demo\_flh\_devore.py} should produce the following plots (where field lines were traced on a grid of resolution $128\times 128$): 
+\begin{center}
+\includegraphics[width=\textwidth]{flhdevore.png}
+\end{center}
+The left plot shows the field-line helicity $\mathcal{A}({\bf x}) := \int_{L({\bf x})}\Ab\cdot\,\mathrm{d}{\bf l}$ when ${\bf n}\times{\bf A}$ is matched to ${\bf n}\times{\bf A}_{\rm p}$ on all six boundary faces, where the reference vector potential ${\bf A}_{\rm p}$ is in the upward-integrated Devore-Coulomb gauge. The middle plot shows $\mathcal{A}_{\rm p}({\bf x}) := \int_{L_{\rm p}({\bf x})}\Ab_{\rm p}\cdot\,\mathrm{d}{\bf l}$, i.e. the field-line helicity of the reference field itself. The right plot shows the relative field line helicity $\mathcal{A}^{\rm R}({\bf x}) := \mathcal{A}({\bf x}) - \mathcal{A}_{\rm p}({\bf x})$. The upward DeVore-Coulomb gauge is computed as
+\begin{equation}
+{\bf A}_{\rm p}(x,y,z) = {\bf A}_0(x,y) + \int_{z_0}^z B_{{\rm p}y}(x,y,z')\,\mathrm{d}z'\,\mathrm{e}_x - \int_{z_0}^z B_{{\rm p}x}(x,y,z')\,\mathrm{d}z'\,\mathrm{e}_y,
+\end{equation}
+where ${\bf A}_0$ is the two-dimensional Coulomb gauge on the $z=z_0$ (lower) boundary of the domain. 
+
+All of these can easily be plotted at a different height by changing the variable \texttt{z0} in the script. In this case note that ${\bf x}\in\{z=z_0\}$ so $\mathcal{A}^{\rm R}$ on a given field line $L({\bf x})$ will change owing to the change of reference field line $L({\bf x}_{\rm p})$.
+
+\subsection{Minimal gauge field-line helicity}
+
+The script \texttt{demo\_flh\_minimal.py} shows how to do the same computation but with $\Ab_{\rm p}$ and $\Ab$ in a gauge satisfying the minimal gauge condition that $\nabla_h\cdot\Ab=0$ on all six boundary faces. This should produce the following plots (where field lines were traced on a grid of resolution $128\times 128$): 
+\begin{center}
+\includegraphics[width=\textwidth]{flhminimal.png}
+\end{center}
+
+\subsection{Total relative helicity}
+
+The script \texttt{demo\_compare\_hr.py} compares different numerical estimates of the relative helicity
+\begin{equation}
+H^{\rm R} = \int_V(\Ab + \Ab_{\rm p})\cdot({\bf B} - {\bf B}_{\rm p})\,\mathrm{d}^3x,
+\end{equation}
+for this datacube. Firstly, it evaluates this Finn-Antonsen formula directly using the three-dimensional composite trapezium rule with the integrand $(\Ab + \Ab_{\rm p})\cdot({\bf B} - {\bf B}_{\rm p})$, for (a) the original DeVore-Coulomb gauges of $\Ab$ and $\Ab_{\rm p}$ (with no matching), and (b) both $\Ab$ and $\Ab_{\rm p}$ in the minimal gauge.
+
+Then, the script evaluates $H^{\rm R}$ by first computing $\mathcal{A}^{\rm R}$ on all six boundary faces (by tracing field lines on a grid), then using the formula
+\begin{equation}
+H^{\rm R} = \frac{1}{2}\oint_{\partial V}\mathcal{A}^{\rm R}|B_n|\,\mathrm{d}^2x.
+\end{equation}
+
+
+\bibliography{ref}
+
+\end{document}
