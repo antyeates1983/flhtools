@@ -1,5 +1,6 @@
 # flhtools
 ===================================================
+
 FLHTOOLS - Field-Line Helicity TOOLS
 
 A.R. Yeates, Durham University -- 20/7/18
