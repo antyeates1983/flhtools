@@ -107,8 +107,8 @@ program fastflh
     read(hmax,*) maxds
     maxds = maxds*min(dx, dy, dz)
 
-   ! !$omp parallel private(dirn,ddirn,ds,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1,xl,flh0,flh1)
-  !  !$omp do
+    !$omp parallel private(dirn,ddirn,ds,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1,xl,flh0,flh1)
+    !$omp do
     do i=1,nl    
        
        ! - initialise variables:
@@ -223,8 +223,8 @@ program fastflh
             end do
         end do
     end do
-   ! !$omp end do
-   ! !$omp end parallel
+    !$omp end do
+    !$omp end parallel
 
     !-------------------------------------------------------------
     ! Output field lines to binary file:
