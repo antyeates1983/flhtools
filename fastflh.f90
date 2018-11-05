@@ -20,7 +20,7 @@ program fastflh
 
     implicit none
     
-    character(128) :: bfile, afile, hmax, maxerrors
+    character(128) :: tmpath, bfile, afile, hmax, maxerrors
     character*(*), parameter :: x0file='x0.unf', flhfile='flh.unf'
     integer :: nx, ny, nz, nl, i
     double precision, dimension(:), allocatable :: x, y, z, xc, yc, zc, flh
@@ -36,15 +36,16 @@ program fastflh
 
     !-------------------------------------------------------------
     ! Get command line arguments:
-    call get_command_argument(1, bfile)
-    call get_command_argument(2, afile)
-    call get_command_argument(3, hmax)
-    call get_command_argument(4, maxerrors)
+    call get_command_argument(1, tmpath)
+    call get_command_argument(2, bfile)
+    call get_command_argument(3, afile)
+    call get_command_argument(4, hmax)
+    call get_command_argument(5, maxerrors)
     read(maxerrors,*) maxerror
   
     !-------------------------------------------------------------
     ! Read B from file:
-    open(1, file=trim(bfile), form='unformatted')
+    open(1, file=trim(tmpath)//trim(bfile), form='unformatted')
     ! - grid dimensions:
     read(1) nx
     read(1) ny
@@ -80,7 +81,7 @@ program fastflh
     
     !-------------------------------------------------------------
     ! Read A from file:
-    open(1, file=trim(afile), form='unformatted')
+    open(1, file=trim(tmpath)//trim(afile), form='unformatted')
     ! - vector potential on cell edges:
     allocate(ax(0:nx,0:ny-1,0:nz-1), ay(0:nx-1,0:ny,0:nz-1), az(0:nx-1,0:ny-1,0:nz))
     read(1) ax
@@ -90,7 +91,7 @@ program fastflh
     
     !-------------------------------------------------------------
     ! Read field-line startpoints from file:
-    open(1, file=x0file, form='unformatted')
+    open(1, file=trim(tmpath)//x0file, form='unformatted')
     read(1) nl
     allocate(x0(1:nl,1:3))
     read(1) x0
@@ -107,7 +108,7 @@ program fastflh
     read(hmax,*) maxds
     maxds = maxds*min(dx, dy, dz)
 
-    !$omp parallel private(dirn,ddirn,ds,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1,xl,flh0,flh1)
+    !$omp parallel private(dirn,ddirn,ds,ds1,ds2,ds3,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1,xl,flh0,flh1)
     !$omp do
     do i=1,nl    
        
@@ -228,7 +229,7 @@ program fastflh
 
     !-------------------------------------------------------------
     ! Output field lines to binary file:
-    open(1, file=flhfile, form='unformatted')
+    open(1, file=trim(tmpath)//flhfile, form='unformatted')
     write(1) flh
     close(1)
     

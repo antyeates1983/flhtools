@@ -24,6 +24,8 @@ class BField:
             at grid points.
         """
        
+        self.codepath = './'
+        self.tmpath = './'
         self.filename = filename
        
         # Compile the fortran code:
@@ -88,7 +90,7 @@ class BField:
             self.computeBfromA()
   
         # Save to file (for fortran tracer):
-        fid = FortranFile('bc.unf', 'w')
+        fid = FortranFile(self.tmpath+'bc.unf', 'w')
         fid.write_record(np.array([self.nx], dtype=np.int32))
         fid.write_record(np.array([self.ny], dtype=np.int32))
         fid.write_record(np.array([self.nz], dtype=np.int32))
@@ -305,7 +307,7 @@ class BField:
         else:
             self.axs = rgi((self.xc, self.y1, self.z1), ax, bounds_error=False, fill_value=0)
         # - save to fortran file:
-        fid = FortranFile(afile, 'w')
+        fid = FortranFile(self.tmpath+afile, 'w')
         fid.write_record(np.swapaxes(ax.astype(np.float64), 0, 2))
         del(ax)
 
@@ -331,7 +333,7 @@ class BField:
         # - save to fortran file:
         fid.write_record(np.swapaxes(ay.astype(np.float64), 0, 2))
         del(ay)
-        
+
         # Compute Az (just zero):
         az = np.zeros((self.nx, self.ny, self.nz+1))
         # - make interpolator:
@@ -343,7 +345,6 @@ class BField:
         fid.write_record(np.swapaxes(az.astype(np.float64), 0, 2))
         fid.close()
         del(az)       
-        
 
     def computeBfromA(self):
         """
@@ -429,24 +430,24 @@ class BField:
         while (j < nl):
             if (j+nchnk > nl):
                 nchnk = nl-j
-            fid = FortranFile('x0.unf', 'w')
+            fid = FortranFile(self.tmpath+'x0.unf', 'w')
             fid.write_record(np.array([nchnk], dtype=np.int32))
             fid.write_record(x0[j:j+nchnk,:].astype(np.float64).T)
             fid.close()
             
             # Trace field lines using fortran:
-            os.system('./fastfl '+bfile)
+            os.system(self.codepath+'fastfl '+self.tmpath+' '+bfile)
 
             # Read in results and return:
-            fid = FortranFile('xl.unf', 'r')
+            fid = FortranFile(self.tmpath+'xl.unf', 'r')
             nmax = fid.read_ints(dtype=np.int32)[0]
             xl0 = fid.read_reals(dtype=np.float64).reshape((3,nmax,nchnk))
             xl0 = np.swapaxes(xl0, 0, 2)
             fid.close()
 
             # Remove temporary files:
-            os.system('rm -f x0.unf')
-            os.system('rm -f xl.unf')
+            os.system('rm -f '+self.tmpath+'x0.unf')
+            os.system('rm -f '+self.tmpath+'xl.unf')
         
             # Extract meaningful points into list of field lines:
             for i in range(nchnk):
@@ -478,22 +479,22 @@ class BField:
         print('Tracing %i field lines...' % nl)
 
         # Save startpoints to fortran file:
-        fid = FortranFile('x0.unf', 'w')
+        fid = FortranFile(self.tmpath+'x0.unf', 'w')
         fid.write_record(np.array([nl], dtype=np.int32))
         fid.write_record(x0.astype(np.float64).T)
         fid.close()
         
         # Compute FLH using fortran:
-        os.system('./fastflh '+bfile+' '+afile+(' %f %f' % (hmax, maxerror)))
+        os.system(self.codepath+'fastflh '+self.tmpath+' '+bfile+' '+afile+(' %f %f' % (hmax, maxerror)))
 
         # Read in results:
-        fid = FortranFile('flh.unf', 'r')
+        fid = FortranFile(self.tmpath+'flh.unf', 'r')
         flh = fid.read_reals(dtype=np.float64)
         fid.close()
 
         # Remove temporary files:
-        os.system('rm -f x0.unf')
-        os.system('rm -f flh.unf')
+        os.system('rm -f '+self.tmpath+'x0.unf')
+        os.system('rm -f '+self.tmpath+'flh.unf')
         
         return(flh)   
     
@@ -593,7 +594,7 @@ class BField:
         self.bpzs = rgi((self.xc, self.yc, self.z1), bpz, bounds_error=False, fill_value=0)
         
         # Save to file (for fortran tracer):
-        fid = FortranFile('bpc.unf', 'w')
+        fid = FortranFile(self.tmpath+'bpc.unf', 'w')
         fid.write_record(np.array([self.nx], dtype=np.int32))
         fid.write_record(np.array([self.ny], dtype=np.int32))
         fid.write_record(np.array([self.nz], dtype=np.int32))
@@ -750,7 +751,7 @@ class BField:
         phi[:,:,-1] = phi_zmax
         
         # Change gauge of vector potential:
-        fid = FortranFile('ae.unf', 'w')       
+        fid = FortranFile(self.tmpath+'ae.unf', 'w')       
         x3, y3, z3 = np.meshgrid(self.xc, self.y1, self.z1, indexing='ij')
         ax = self.ax(x3, y3, z3)
         ax[1:-1,:,:] += (phi[1:,:,:] - phi[:-1,:,:])/dx
@@ -1090,7 +1091,7 @@ class BField:
         phi[:,:,-1] = phi_zmax
         
         # Change gauge of vector potential:
-        fid = FortranFile(afile, 'w')       
+        fid = FortranFile(self.tmpath+afile, 'w')       
         x3, y3, z3 = np.meshgrid(self.xc, self.y1, self.z1, indexing='ij')
         ax1 = ax(x3, y3, z3)
         ax1[1:-1,:,:] += (phi[1:,:,:] - phi[:-1,:,:])/dx

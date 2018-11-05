@@ -14,7 +14,7 @@ program fastfl
 
     implicit none
     
-    character(128) :: bfile
+    character(128) :: tmpath, bfile
     character*(*), parameter :: x0file='x0.unf', xlfile='xl.unf'
     integer :: nx, ny, nz, nl, i
     double precision, dimension(:), allocatable :: x, y, z, xc, yc, zc
@@ -28,12 +28,16 @@ program fastfl
     double precision, parameter :: minB=1d-4, maxerror=1d-1
 
     !-------------------------------------------------------------
+    ! Get temporary data directory from the command line:
+    call get_command_argument(1, tmpath)
+
+    !-------------------------------------------------------------
     ! Get name of magnetic field from the command line:
-    call get_command_argument(1, bfile)
-    
+    call get_command_argument(2, bfile)
+     
     !-------------------------------------------------------------
     ! Read B from file:
-    open(1, file=trim(bfile), form='unformatted')
+    open(1, file=trim(tmpath)//trim(bfile), form='unformatted')
     ! - grid dimensions:
     read(1) nx
     read(1) ny
@@ -69,7 +73,7 @@ program fastfl
     
     !-------------------------------------------------------------
     ! Read field-line startpoints from file:
-    open(1, file=x0file, form='unformatted')
+    open(1, file=trim(tmpath)//x0file, form='unformatted')
     read(1) nl
     allocate(x0(1:nl,1:3))
     read(1) x0
@@ -84,7 +88,7 @@ program fastfl
     ! Maximum allowed step-size:
     maxds = dz
    
-    !$omp parallel private(dirn,ddirn,ds,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1)
+    !$omp parallel private(dirn,ddirn,ds,ds1,ds2,ds3,nxt,k1,ds_dt,x2,k2,dx1,dx2,x1)
     !$omp do
     do i=1,nl    
        
@@ -195,7 +199,7 @@ program fastfl
        
     !-------------------------------------------------------------
     ! Output field lines to binary file:
-    open(1, file=xlfile, form='unformatted')
+    open(1, file=trim(tmpath)//xlfile, form='unformatted')
     write(1) nmax
     write(1) xl
     close(1)
