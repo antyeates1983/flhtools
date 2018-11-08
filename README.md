@@ -11,4 +11,4 @@ Python code (2.7 or 3.x) for computing vector potentials, field-line helicity, a
 
 To start, you should read the manual (doc/man.pdf), which includes a quick-start guide to running the code.
 
-The code accompanies a paper currently in preparation.
+The code accompanies a paper currently in press (preprint here: https://arxiv.org/abs/1811.02306).
