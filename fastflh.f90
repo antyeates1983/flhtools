@@ -23,6 +23,7 @@ program fastflh
     character(128) :: tmpath, bfile, afile, hmax, maxerrors
     character*(*), parameter :: x0file='x0.unf', flhfile='flh.unf'
     integer :: nx, ny, nz, nl, i
+    integer, dimension(:), allocatable :: status
     double precision, dimension(:), allocatable :: x, y, z, xc, yc, zc, flh
     double precision, dimension(:,:), allocatable :: x0
     double precision, dimension(:,:,:), allocatable :: bx, by, bz, ax, ay, az
@@ -31,7 +32,7 @@ program fastflh
     double precision :: dx, dy, dz, ddirn, maxds, ds_dt, error, flh0, flh1
     double precision :: maxerror, ds, ds1, ds2, ds3
     integer :: dirn, nxt
-    integer, parameter :: nmax=100000 
+    integer, parameter :: nmax=100000
     double precision, parameter :: minB=1d-4
 
     !-------------------------------------------------------------
@@ -101,8 +102,9 @@ program fastflh
     ! Loop over startpoints and trace field lines:
 
     ! - declare field-line helicity array:
-    allocate(flh(nl))
+    allocate(flh(nl), status(nl))
     flh = 0d0
+    status = 0
     
     ! Maximum allowed step-size:
     read(hmax,*) maxds
@@ -133,7 +135,7 @@ program fastflh
           
           do
                 x2 = xl + ds*k1
-            
+
                 ! - if left domain, do Euler step then stop:
                 if ((x2(1).lt.xmin(1)).or.(x2(1).gt.xmax(1)).or. &
                     (x2(2).lt.ymin(2)).or.(x2(2).gt.ymax(2)).or. &
@@ -168,8 +170,9 @@ program fastflh
                     ds = min(ds1, ds2, ds3)
                     nxt = nxt + dirn
                     if ((nxt > nmax).or.(nxt < 1)) then
-                        print*,'ERROR: field line overflow, increase nmax!'
-                        stop
+                        print*,'WARNING: field line overflow, increase nmax!'
+                        status(i) = -1
+                        exit                    
                     end if
                 
                     xl = xl + ds*k1
@@ -177,6 +180,7 @@ program fastflh
                     flh1 = integrand(xl)
                     flh(i) = flh(i) + 0.5d0*ds*(flh0 + flh1)
                     flh0 = flh1
+                    if (status(i).eq.0) status(i) = 1
                     exit
                 end if
                 
@@ -206,8 +210,9 @@ program fastflh
                         (x1(3).lt.zmin(3)).or.(x1(3).gt.zmax(3))) x1 = x2
                     nxt = nxt + dirn
                     if ((nxt > nmax).or.(nxt < 1)) then
-                        print*,'ERROR: field line overflow, increase nmax!'
-                        stop
+                        print*,'WARNING: field line overflow, increase nmax!'
+                        status(i) = -1
+                        exit                    
                     end if
                     
                     xl = x1
@@ -231,6 +236,7 @@ program fastflh
     ! Output field lines to binary file:
     open(1, file=trim(tmpath)//flhfile, form='unformatted')
     write(1) flh
+    write(1) status
     close(1)
     
 contains

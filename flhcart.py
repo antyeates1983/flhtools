@@ -29,7 +29,7 @@ class BField:
         self.filename = filename
        
         # Compile the fortran code:
-        os.system('gfortran -o fastfl fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp') 
+        os.system('gfortran -o fastfl fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
         os.system('gfortran -o fastflh fastflh.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
             
         # Open netcdf file:
@@ -443,7 +443,11 @@ class BField:
             nmax = fid.read_ints(dtype=np.int32)[0]
             xl0 = fid.read_reals(dtype=np.float64).reshape((3,nmax,nchnk))
             xl0 = np.swapaxes(xl0, 0, 2)
+            stat0 = fid.read_ints(dtype=np.int32)
             fid.close()
+            
+            if (np.sum(stat0!=1) > 0):
+                print('Number of bad field lines: %i' % np.sum(stat0!=1))
 
             # Remove temporary files:
             os.system('rm -f '+self.tmpath+'x0.unf')
@@ -462,7 +466,7 @@ class BField:
         return(xl)
     
     
-    def flHelicity(self, x0, hmax=1, maxerror=1e-1, potential=False):
+    def flHelicity(self, x0, hmax=1, maxerror=1e-1, potential=False, badvalue=0):
         """
             Compute field-line helicity from startpoints x0 by calling fortran fastflh.f90 code.
             Parameter hmax (real) is maximum step-size, in fraction of a cell.
@@ -490,7 +494,13 @@ class BField:
         # Read in results:
         fid = FortranFile(self.tmpath+'flh.unf', 'r')
         flh = fid.read_reals(dtype=np.float64)
+        stat = fid.read_ints(dtype=np.int32)
         fid.close()
+        
+        # Set field lines where tracing failed to "badvalue":
+        flh[stat!=1] = badvalue
+        if (np.sum(stat!=1) > 0):
+            print('Number of bad field lines: %i' % np.sum(stat!=1))
 
         # Remove temporary files:
         os.system('rm -f '+self.tmpath+'x0.unf')

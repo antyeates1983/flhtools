@@ -17,6 +17,7 @@ program fastfl
     character(128) :: tmpath, bfile
     character*(*), parameter :: x0file='x0.unf', xlfile='xl.unf'
     integer :: nx, ny, nz, nl, i
+    integer, dimension(:), allocatable :: status
     double precision, dimension(:), allocatable :: x, y, z, xc, yc, zc
     double precision, dimension(:,:), allocatable :: x0
     double precision, dimension(:,:,:), allocatable :: bx, by, bz, xl
@@ -24,7 +25,7 @@ program fastfl
     double precision, dimension(3) :: k1, k2, dx1, dx2, x1, x2
     double precision :: dx, dy, dz, ddirn, maxds, ds, ds1, ds2, ds3, ds_dt, error
     integer :: dirn, nxt
-    integer, parameter :: nmax=1000
+    integer, parameter :: nmax=10000
     double precision, parameter :: minB=1d-4, maxerror=1d-1
 
     !-------------------------------------------------------------
@@ -83,7 +84,8 @@ program fastfl
     ! Loop over startpoints and trace field lines:
 
     ! - declare field line array:
-    allocate(xl(nl,nmax,3))
+    allocate(xl(nl,nmax,3), status(nl))
+    status = 0  ! incomplete
     
     ! Maximum allowed step-size:
     maxds = dz
@@ -95,7 +97,7 @@ program fastfl
        ! - initialise variables:
        xl(i,:,:) = 0d0
        xl(i,:,1) = xmin(1) - dx
-       
+
        ! - trace backward then forward:
        do dirn=-1,1,2
           ddirn = dble(dirn)
@@ -112,7 +114,7 @@ program fastfl
           
             do
                 x2 = xl(i,nxt,:) + ds*k1
-            
+
                 ! - if left domain, do Euler step then stop:
                 if ((x2(1).lt.xmin(1)).or.(x2(1).gt.xmax(1)).or. &
                     (x2(2).lt.ymin(2)).or.(x2(2).gt.ymax(2)).or. &
@@ -146,12 +148,16 @@ program fastfl
                     end if        
                     ds = min(ds1, ds2, ds3)
                     nxt = nxt + dirn
+                  
                     if ((nxt > nmax).or.(nxt < 1)) then
-                        print*,'ERROR: field line overflow, increase nmax!'
-                        stop
+                        print*,'WARNING: field line overflow, increase nmax!'
+                        status(i) = -1
+                        exit
                     end if
                 
                     xl(i,nxt,:) = xl(i,nxt-dirn,:) + ds*k1
+                    if (status(i).eq.0) status(i) = 1
+                    
                     exit
                 end if
              
@@ -179,14 +185,16 @@ program fastfl
                         (x1(3).lt.zmin(3)).or.(x1(3).gt.zmax(3))) x1 = x2
                     nxt = nxt + dirn
                     if ((nxt > nmax).or.(nxt < 1)) then
-                        print*,'ERROR: field line overflow, increase nmax!'
-                        stop
+                        print*,'WARNING: field line overflow, increase nmax!'
+                        status(i) = -1
+                        exit
                     end if
                     
                     xl(i,nxt,:) = x1
                 
                     k1 = interp1(xl(i,nxt,:))
                     ds_dt = dsqrt(sum(k1**2))
+
                     if (ds_dt < minB) exit  ! stop if null reached
                     ds_dt = ds_dt*ddirn
                     k1 = k1/ds_dt
@@ -202,6 +210,7 @@ program fastfl
     open(1, file=trim(tmpath)//xlfile, form='unformatted')
     write(1) nmax
     write(1) xl
+    write(1) status
     close(1)
     
 contains
