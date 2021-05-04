@@ -30,8 +30,10 @@ class BField:
        
         # Compile the fortran code:
         os.system('gfortran -o fastfl fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
-        os.system('gfortran -o fastflh fastflh.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
-            
+        os.system('gfortran -o fastflh fastflh.f90 -O0 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp -g -fcheck=all -fbacktrace')
+        # os.system('gfortran -o fastflh fastflh.f90 -O0 -ffast-math -funroll-loops --param max-unroll-times=5 -g -fcheck=all -fbacktrace')     # for debugging
+
+        
         # Open netcdf file:
         try:
             fh = netcdf.netcdf_file(filename, 'r', mmap=False)
