@@ -19,19 +19,19 @@ class BField:
     Magnetic field snapshot.
     """
       
-    def __init__(self, filename, clean=True):
+    def __init__(self, filename, clean=True, codepath='./'):
         """
             Constructor - creates BField object from netcdf file with 3D B-field arrays located
             at grid points.
         """
        
-        self.codepath = './'
-        self.tmpath = './'
+        self.codepath = codepath
+        self.tmpath = codepath
         self.filename = filename
        
         # Compile the fortran code:
-        os.system('gfortran -o fastfl fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
-        os.system('gfortran -o fastflh fastflh.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp -g -fcheck=all -fbacktrace')
+        os.system('gfortran -o fastfl '+codepath+'fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
+        os.system('gfortran -o fastflh '+codepath+'fastflh.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp -g -fcheck=all -fbacktrace')
         # os.system('gfortran -o fastflh fastflh.f90 -O0 -ffast-math -funroll-loops --param max-unroll-times=5 -g -fcheck=all -fbacktrace')     # for debugging
 
         
