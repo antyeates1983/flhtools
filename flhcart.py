@@ -7,7 +7,8 @@ anthony.yeates@durham.ac.uk
 import numpy as np
 from scipy.io import netcdf, FortranFile
 from scipy.interpolate import RegularGridInterpolator as rgi
-from scipy.integrate import ode, trapz
+from scipy.integrate import ode
+from scipy.integrate import trapezoid as trapz
 import scipy.fftpack as fp
 import scipy.sparse as sp
 import time
